@@ -56,7 +56,7 @@ jobs:
         # 服务器目标目录（需要替换为真实目录）
         TARGET: ${{ secrets.DEPLOY_PATH }}
         # 额外的 rsync 选项
-        ARGS: "-avz --delete --exclude='node_modules' --exclude='.git'"
+        # ARGS: "-avz --delete --exclude='node_modules' --exclude='.git'"
     
     # 6. 验证部署
     - name: 验证部署
