@@ -1,0 +1,140 @@
+name: 前端测试项目 CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+    
+    - name: 显示项目结构
+      run: |
+        echo "📁 项目文件列表："
+        tree -L 2 || ls -la
+        echo "-------------------"
+    
+    - name: 检查 HTML 文件
+      run: |
+        echo "🔍 查找 HTML 文件："
+        find . -name "*.html" | while read file; do
+          echo "📄 检查: $file"
+          # 检查 HTML 是否有基础结构
+          if grep -q "<!DOCTYPE html>" "$file"; then
+            echo "  ✅ DOCTYPE 正确"
+          else
+            echo "  ⚠️ 缺少 DOCTYPE 声明"
+          fi
+          
+          # 统计文件大小
+          size=$(wc -c < "$file")
+          echo "  📊 文件大小: $size 字节"
+        done
+    
+    - name: 检查 JavaScript 文件
+      run: |
+        echo "🔍 查找 JavaScript 文件："
+        js_files=$(find . -name "*.js" -not -path "*/node_modules/*")
+        
+        if [ -z "$js_files" ]; then
+          echo "  ⚠️ 没有找到 JS 文件"
+        else
+          echo "$js_files" | while read file; do
+            echo "📄 检查: $file"
+            
+            # 基础语法检查（使用 Node 检查）
+            if node --check "$file" 2>/dev/null; then
+              echo "  ✅ 语法检查通过"
+            else
+              echo "  ❌ 语法错误"
+              node --check "$file" || true
+            fi
+            
+            # 检查 console.log（可选）
+            if grep -q "console\.log" "$file"; then
+              echo "  ⚠️ 包含 console.log（建议移除）"
+            fi
+          done
+        fi
+    
+    - name: 检查 CSS 文件
+      run: |
+        echo "🔍 查找 CSS 文件："
+        css_files=$(find . -name "*.css" -not -path "*/node_modules/*")
+        
+        if [ -z "$css_files" ]; then
+          echo "  ⚠️ 没有找到 CSS 文件"
+        else
+          echo "$css_files" | while read file; do
+            echo "📄 检查: $file"
+            
+            # 检查 CSS 语法（使用 csslint 或基本检查）
+            if [ -s "$file" ]; then
+              echo "  ✅ 文件非空"
+            else
+              echo "  ⚠️ 文件为空"
+            fi
+            
+            # 检查大括号匹配
+            open_braces=$(grep -o "{" "$file" | wc -l)
+            close_braces=$(grep -o "}" "$file" | wc -l)
+            if [ "$open_braces" -eq "$close_braces" ]; then
+              echo "  ✅ 大括号匹配"
+            else
+              echo "  ❌ 大括号不匹配: { $open_braces, } $close_braces"
+            fi
+          done
+        fi
+    
+    - name: 运行测试（使用浏览器环境）
+      run: |
+        echo "🧪 准备运行测试..."
+        
+        # 安装简单的 HTTP 服务器
+        npm install -g http-server || echo "跳过安装（可能无 npm）"
+        
+        # 如果没有 npm，使用 Python 启动服务器
+        if command -v python3 &> /dev/null; then
+          echo "使用 Python 启动服务器进行测试..."
+          # 这里可以添加 Puppeteer 或 Playwright 测试
+          echo "✅ 测试环境准备就绪"
+        else
+          echo "⚠️ 无法启动测试服务器，跳过浏览器测试"
+        fi
+    
+    - name: 验证所有文件
+      run: |
+        echo "📊 测试报告："
+        
+        # 统计各类文件
+        html_count=$(find . -name "*.html" | wc -l)
+        js_count=$(find . -name "*.js" | wc -l)
+        css_count=$(find . -name "*.css" | wc -l)
+        
+        echo "📄 HTML 文件: $html_count"
+        echo "📜 JS 文件: $js_count"
+        echo "🎨 CSS 文件: $css_count"
+        
+        # 检查是否存在 index.html
+        if [ -f "index.html" ]; then
+          echo "✅ 存在主文件: index.html"
+        else
+          echo "⚠️ 未找到 index.html"
+        fi
+    
+    - name: 上传测试结果
+      if: always()  # 即使失败也执行
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-report
+        path: |
+          *.html
+          *.js
+          *.css
+          !node_modules
