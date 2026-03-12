@@ -44,19 +44,19 @@ jobs:
       uses: easingthemes/ssh-deploy@v5.1.0
       with:
         # 服务器主机地址（需要替换为真实服务器地址）
-        host: ${{ secrets.SERVER_IP }}
+        REMOTE_HOST: ${{ secrets.SERVER_IP }}
         # 服务器端口（默认 22）
-        port: 22
+        REMOTE_PORT: 22
         # 服务器用户名（需要替换为真实用户名）
-        username: ${{ secrets.SERVER_USER }}
+        REMOTE_USER: ${{ secrets.SERVER_USER }}
         # 服务器私钥（需要在 GitHub Secrets 中设置）
-        privateKey: ${{ secrets.SSH_PRIVATE_KEY }}
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         # 本地构建产物目录（根据实际构建输出目录修改）
-        source: "./"
+        SOURCE: "./"
         # 服务器目标目录（需要替换为真实目录）
-        target: ${{ secrets.DEPLOY_PATH }}
+        TARGET: ${{ secrets.DEPLOY_PATH }}
         # 额外的 rsync 选项
-        rsyncOptions: "-avz --delete --exclude='node_modules' --exclude='.git'"
+        ARGS: "-avz --delete --exclude='node_modules' --exclude='.git'"
     
     # 6. 验证部署
     - name: 验证部署
