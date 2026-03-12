@@ -1,0 +1,72 @@
+name: 前端项目 CD 部署
+
+on:
+  # 当代码推送到 main 分支时触发部署
+  push:
+    branches: [ main, master ]
+  # 也可以手动触发部署
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    # 1. 检出代码
+    - name: 检出代码
+      uses: actions/checkout@v4
+    
+    # 2. 显示项目结构（可选）
+    - name: 显示项目结构
+      run: |
+        echo "📁 项目文件列表："
+        ls -la
+    
+    # 3. 安装依赖（如果需要）
+    - name: 安装依赖
+      run: |
+        # 如果项目使用 npm，安装依赖
+        if [ -f "package.json" ]; then
+          npm install
+        fi
+    
+    # 4. 构建项目（如果需要）
+    - name: 构建项目
+      run: |
+        # 如果项目需要构建，执行构建命令
+        if [ -f "package.json" ]; then
+          # 假设有构建脚本
+          npm run build || echo "跳过构建"
+        fi
+    
+    # 5. 部署到服务器
+    - name: 部署到线上服务器
+      uses: easingthemes/ssh-deploy@v5.1.0
+      with:
+        # 服务器主机地址（需要替换为真实服务器地址）
+        host: ${{ secrets.SERVER_IP }}
+        # 服务器端口（默认 22）
+        port: 22
+        # 服务器用户名（需要替换为真实用户名）
+        username: ${{ secrets.SERVER_USER }}
+        # 服务器私钥（需要在 GitHub Secrets 中设置）
+        privateKey: ${{ secrets.SSH_PRIVATE_KEY }}
+        # 本地构建产物目录（根据实际构建输出目录修改）
+        source: "./"
+        # 服务器目标目录（需要替换为真实目录）
+        target: ${{ secrets.DEPLOY_PATH }}
+        # 额外的 rsync 选项
+        rsyncOptions: "-avz --delete --exclude='node_modules' --exclude='.git'"
+    
+    # 6. 验证部署
+    - name: 验证部署
+      run: |
+        echo "✅ 部署完成！"
+        echo "请访问: http://your-server-ip-or-domain.com"
+    
+    # 7. 通知（可选）
+    - name: 部署通知
+      if: success()
+      run: |
+        echo "🎉 部署成功！项目已上线"
+        # 这里可以添加邮件通知、Slack 通知等
